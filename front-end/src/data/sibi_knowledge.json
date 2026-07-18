@@ -1,0 +1,158 @@
+[
+  {
+    "text": "A",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, biarkan ibu jari lurus dan menempel di sisi telunjuk.",
+    "image_url": "/images/sibi/A.png"
+  },
+  {
+    "text": "B",
+    "dict_type": "alphabet",
+    "description": "Buka telapak tangan menghadap depan, rapatkan keempat jari (telunjuk sampai kelingking), dan tekuk ibu jari ke dalam telapak tangan.",
+    "image_url": "/images/sibi/B.png"
+  },
+  {
+    "text": "C",
+    "dict_type": "alphabet",
+    "description": "Lengkungkan keempat jari dan ibu jari sehingga membentuk huruf 'C' setengah lingkaran menghadap ke samping.",
+    "image_url": "/images/sibi/C.png"
+  },
+  {
+    "text": "D",
+    "dict_type": "alphabet",
+    "description": "Tegakkan jari telunjuk, pertemukan ujung ibu jari dengan ujung jari tengah, manis, dan kelingking membentuk lingkaran.",
+    "image_url": "/images/sibi/D.png"
+  },
+  {
+    "text": "E",
+    "dict_type": "alphabet",
+    "description": "Tekuk keempat jari (telunjuk sampai kelingking) ke bawah menuju telapak tangan, dan lipat ibu jari menyilang di atas kuku jari-jari tersebut.",
+    "image_url": "/images/sibi/E.png"
+  },
+  {
+    "text": "F",
+    "dict_type": "alphabet",
+    "description": "Pertemukan ujung ibu jari dan telunjuk membentuk lingkaran, biarkan ketiga jari lainnya (tengah, manis, kelingking) tegak lurus dan sedikit merenggang.",
+    "image_url": "/images/sibi/F.png"
+  },
+  {
+    "text": "G",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, julurkan telunjuk dan ibu jari lurus ke depan secara sejajar (seperti menunjuk ke samping/depan).",
+    "image_url": "/images/sibi/G.png"
+  },
+  {
+    "text": "H",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, julurkan telunjuk dan jari tengah lurus ke depan berdampingan, sementara ibu jari diselipkan mendatar di bawahnya.",
+    "image_url": "/images/sibi/H.png"
+  },
+  {
+    "text": "I",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, angkat hanya jari kelingking tegak lurus ke atas.",
+    "image_url": "/images/sibi/I.png"
+  },
+  {
+    "text": "J",
+    "dict_type": "alphabet",
+    "description": "Sama seperti I (angkat kelingking), lalu buat gerakan melengkung ke bawah seperti menggambar huruf J di udara.",
+    "image_url": "/images/sibi/J.png"
+  },
+  {
+    "text": "K",
+    "dict_type": "alphabet",
+    "description": "Tegakkan telunjuk dan jari tengah membentuk huruf V, letakkan ujung ibu jari di pangkal (atau di antara) jari telunjuk dan tengah.",
+    "image_url": "/images/sibi/K.png"
+  },
+  {
+    "text": "L",
+    "dict_type": "alphabet",
+    "description": "Tegakkan telunjuk ke atas dan rentangkan ibu jari ke samping, jari lainnya dikepal, sehingga membentuk huruf L.",
+    "image_url": "/images/sibi/L.png"
+  },
+  {
+    "text": "M",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, selipkan ibu jari di bawah tiga jari pertama (telunjuk, tengah, manis).",
+    "image_url": "/images/sibi/M.png"
+  },
+  {
+    "text": "N",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, selipkan ibu jari di bawah dua jari pertama (telunjuk dan tengah).",
+    "image_url": "/images/sibi/N.png"
+  },
+  {
+    "text": "O",
+    "dict_type": "alphabet",
+    "description": "Lengkungkan semua jari dan pertemukan ujungnya dengan ujung ibu jari sehingga membentuk lingkaran 'O'.",
+    "image_url": "/images/sibi/O.png"
+  },
+  {
+    "text": "P",
+    "dict_type": "alphabet",
+    "description": "Sama seperti formasi K (telunjuk dan tengah terbuka, ibu jari di tengah), tetapi posisikan tangan menunjuk ke bawah/horizontal.",
+    "image_url": "/images/sibi/P.png"
+  },
+  {
+    "text": "Q",
+    "dict_type": "alphabet",
+    "description": "Sama seperti formasi G (telunjuk dan ibu jari sejajar menunjuk), tetapi posisikan menunjuk lurus ke bawah.",
+    "image_url": "/images/sibi/Q.png"
+  },
+  {
+    "text": "R",
+    "dict_type": "alphabet",
+    "description": "Silangkan jari telunjuk dan jari tengah (jari tengah di atas telunjuk), kepalkan jari-jari lainnya.",
+    "image_url": "/images/sibi/R.png"
+  },
+  {
+    "text": "S",
+    "dict_type": "alphabet",
+    "description": "Kepalkan seluruh jari, lipat ibu jari menyilang di atas punggung jari telunjuk dan jari tengah.",
+    "image_url": "/images/sibi/S.png"
+  },
+  {
+    "text": "T",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, selipkan ibu jari hanya di bawah jari telunjuk.",
+    "image_url": "/images/sibi/T.png"
+  },
+  {
+    "text": "U",
+    "dict_type": "alphabet",
+    "description": "Tegakkan jari telunjuk dan jari tengah lurus ke atas dan rapatkan, kepalkan jari-jari lainnya.",
+    "image_url": "/images/sibi/U.png"
+  },
+  {
+    "text": "V",
+    "dict_type": "alphabet",
+    "description": "Tegakkan jari telunjuk dan jari tengah lurus ke atas lalu pisahkan (membentuk huruf V), kepalkan jari-jari lainnya.",
+    "image_url": "/images/sibi/V.png"
+  },
+  {
+    "text": "W",
+    "dict_type": "alphabet",
+    "description": "Tegakkan jari telunjuk, tengah, dan manis ke atas lalu pisahkan (membentuk W), kepalkan kelingking dengan ibu jari.",
+    "image_url": "/images/sibi/W.png"
+  },
+  {
+    "text": "X",
+    "dict_type": "alphabet",
+    "description": "Kepalkan tangan, angkat telunjuk lalu tekuk setengah (seperti mengait), ibu jari dilipat ke dalam.",
+    "image_url": "/images/sibi/X.png"
+  },
+  {
+    "text": "Y",
+    "dict_type": "alphabet",
+    "description": "Kepalkan telunjuk, tengah, dan manis. Rentangkan ibu jari dan kelingking saling menjauh sejajar.",
+    "image_url": "/images/sibi/Y.png"
+  },
+  {
+    "text": "Z",
+    "dict_type": "alphabet",
+    "description": "Tegakkan jari telunjuk, kepalkan jari lainnya. Gunakan ujung telunjuk untuk menggambar huruf 'Z' di udara.",
+    "image_url": "/images/sibi/Z.png"
+  }
+]

@@ -1,0 +1,128 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum DictType {
+  alphabet
+  numbers
+  words
+  phrases
+}
+
+model User {
+  id         String    @id @default(uuid())
+  username   String    @unique @db.VarChar(255)
+  email      String    @unique @db.VarChar(255)
+  phone      String    @db.VarChar(20)
+  password   String    @db.VarChar(255)
+  profile_picture String? @map("profile_picture") @db.Text
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  
+  user_learned_signs   UserLearnedSigns[]
+  user_lesson_progress UserLessonProgress[]
+  password_reset_tokens PasswordResetToken[]
+  
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  user_id    String   @map("user_id")
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime @map("expires_at")
+  used       Boolean  @default(false)
+  created_at DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Dictionary {
+  id          String    @id @default(uuid())
+  text        String    @db.VarChar(255)
+  dict_type   DictType
+  image_url   String?   @map("image_url") @db.Text
+  video_url   String?   @map("video_url") @db.Text
+  description String?   @db.Text
+  created_at  DateTime  @default(now()) @map("created_at")
+  updated_at  DateTime  @updatedAt @map("updated_at")
+  
+  user_learned_signs UserLearnedSigns[]
+  
+  @@map("dictionary")
+}
+
+
+model UserLearnedSigns {
+  id            String   @id @default(uuid())
+  user_id       String   @map("user_id")
+  dictionary_id String   @map("dictionary_id")
+  learned_at    DateTime @default(now()) @map("learned_at")
+  
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  dictionary Dictionary @relation(fields: [dictionary_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, dictionary_id])
+  @@map("user_learned_signs")
+}
+
+model CurriculumLevel {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  level_order Int      @default(0)
+  
+  modules     Module[]
+  
+  @@map("curriculum_levels")
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  level_id    String   @map("level_id")
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  module_order Int     @default(0)
+  
+  level       CurriculumLevel @relation(fields: [level_id], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  
+  @@map("modules")
+}
+
+model Lesson {
+  id          String   @id @default(uuid())
+  module_id   String   @map("module_id")
+  title       String   @db.VarChar(255)
+  instruction String   @db.Text
+  is_dynamic  Boolean  @default(false) @map("is_dynamic")
+  lesson_order Int     @default(0)
+  
+  module      Module @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  user_progress UserLessonProgress[]
+  
+  @@map("lessons")
+}
+
+model UserLessonProgress {
+  id           String   @id @default(uuid())
+  user_id      String   @map("user_id")
+  lesson_id    String   @map("lesson_id")
+  completed_at DateTime @default(now()) @map("completed_at")
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, lesson_id])
+  @@map("user_lesson_progress")
+}

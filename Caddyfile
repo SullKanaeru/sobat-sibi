@@ -1,3 +1,3 @@
-sobat-sibi.zulhanarif.my.id {
+zulhanarif.my.id {
     reverse_proxy web:3000
 }

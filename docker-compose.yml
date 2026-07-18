@@ -20,9 +20,9 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev123}@postgres:5432/${POSTGRES_DB:-sibi_db}?schema=public
       - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://sobat-sibi.zulhanarif.my.id}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://sobat-sibi.zulhanarif.my.id}
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://sobat-sibi.zulhanarif.my.id}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://zulhanarif.my.id}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_APP_URL:-https://zulhanarif.my.id}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://zulhanarif.my.id}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_SECURE=${SMTP_SECURE}

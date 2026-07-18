@@ -36,6 +36,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
+# Copy data folder so seed scripts can find the JSON files
+COPY --from=builder --chown=nextjs:nodejs /app/src/data ./src/data
+
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set the correct permission for prerender cache

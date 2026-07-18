@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev123}
+      POSTGRES_DB: ${POSTGRES_DB:-sibi_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev123}@postgres:5432/${POSTGRES_DB:-sibi_db}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://76.13.17.86:3000}
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

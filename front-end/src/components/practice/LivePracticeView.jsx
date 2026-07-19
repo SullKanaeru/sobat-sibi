@@ -47,6 +47,7 @@ function LivePracticeContent() {
   const [modelStatus, setModelStatus] = useState("idle");
   const [result, setResult] = useState(EMPTY_RESULT);
   const [handDetected, setHandDetected] = useState(false);
+  const handDetectedRef = useRef(false);
   const [timer, setTimer] = useState(45); // 45 seconds timer
   const [holdProgress, setHoldProgress] = useState(0);
   const holdStartTimeRef = useRef(null);
@@ -54,6 +55,7 @@ function LivePracticeContent() {
   // Dynamic gesture states (for J/Z lessons)
   const [dynamicResult, setDynamicResult] = useState(null);
   const [recordingState, setRecordingState] = useState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
+  const recordingActiveRef = useRef(false);
   const [recordingError, setRecordingError] = useState(null);
 
   // Timer countdown
@@ -174,12 +176,18 @@ function LivePracticeContent() {
           }
         }
 
-        if (!handDetected) setHandDetected(true);
+        if (!handDetectedRef.current) {
+          handDetectedRef.current = true;
+          setHandDetected(true);
+        }
       } else {
         frameCountRef.current = 0;
         holdStartTimeRef.current = null;
         setHoldProgress(0);
-        if (handDetected) setHandDetected(false);
+        if (handDetectedRef.current) {
+          handDetectedRef.current = false;
+          setHandDetected(false);
+        }
         maybeSetResult(EMPTY_RESULT);
 
         // If recording dynamic and hand is lost, pad with last known frame
@@ -192,14 +200,15 @@ function LivePracticeContent() {
       // Sync recording UI state
       if (isDynamicLesson) {
         const currentState = getRecordingState();
-        if (currentState.isRecording || recordingState.isRecording) {
+        if (currentState.isRecording || recordingActiveRef.current) {
+          recordingActiveRef.current = currentState.isRecording;
           setRecordingState(currentState);
         }
       }
 
       ctx.restore();
     },
-    [handDetected, maybeSetResult, lessonId, router, isDynamicLesson, recordingState.isRecording]
+    [maybeSetResult, lessonId, router, isDynamicLesson]
   );
 
   // Keep the ref in sync with the latest callback
@@ -296,7 +305,8 @@ function LivePracticeContent() {
       console.error("[LivePracticeView] Setup MediaPipe gagal:", err);
       throw err;
     }
-  }, [onHandResults]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

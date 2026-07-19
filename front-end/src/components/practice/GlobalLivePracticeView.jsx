@@ -36,10 +36,12 @@ function GlobalLivePracticeContent() {
   const [modelStatus, setModelStatus] = useState("idle");
   const [result, setResult] = useState(EMPTY_RESULT);
   const [handDetected, setHandDetected] = useState(false);
+  const handDetectedRef = useRef(false);
 
   const [dynamicResult, setDynamicResult] = useState(null);
   const [recordingState, setRecordingState] = useState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
   const [recordingError, setRecordingError] = useState(null);
+  const recordingActiveRef = useRef(false);
 
   const handleStartRecording = useCallback(() => {
     setDynamicResult(null);
@@ -109,10 +111,16 @@ function GlobalLivePracticeContent() {
           predictGesture(landmarks);
         }
 
-        if (!handDetected) setHandDetected(true);
+        if (!handDetectedRef.current) {
+          handDetectedRef.current = true;
+          setHandDetected(true);
+        }
       } else {
         frameCountRef.current = 0;
-        if (handDetected) setHandDetected(false);
+        if (handDetectedRef.current) {
+          handDetectedRef.current = false;
+          setHandDetected(false);
+        }
         maybeSetResult(EMPTY_RESULT);
 
         // If recording and hand is lost, still call addDynamicFrame(null)
@@ -125,18 +133,20 @@ function GlobalLivePracticeContent() {
 
       // Sync recording UI state directly from engine (no polling interval needed)
       const currentState = getRecordingState();
-      if (currentState.isRecording || recordingState.isRecording) {
+      if (currentState.isRecording || recordingActiveRef.current) {
+        recordingActiveRef.current = currentState.isRecording;
         setRecordingState(currentState);
 
         // Handle timeout detected by engine
         if (currentState.timedOut) {
+          recordingActiveRef.current = false;
           setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
         }
       }
 
       ctx.restore();
     },
-    [handDetected, maybeSetResult, recordingState.isRecording]
+    [maybeSetResult]
   );
 
   // Keep the ref in sync with the latest callback version
@@ -235,7 +245,8 @@ function GlobalLivePracticeContent() {
       console.error("[GlobalLivePracticeView] Setup MediaPipe gagal:", err);
       throw err;
     }
-  }, [onHandResults]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

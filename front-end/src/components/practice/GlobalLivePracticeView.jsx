@@ -9,15 +9,16 @@ import {
   predictGesture,
   resetHistory,
   startRecordingDynamic,
+  addDynamicFrame,
   getRecordingState
 } from "@/lib/gestureRecognizer";
-import { Timer, CheckCircle2, Video } from "lucide-react";
+import { Timer, CheckCircle2, Video, AlertTriangle } from "lucide-react";
 
-const CANVAS_W = 640;
-const CANVAS_H = 480;
-const TARGET_FPS = 20;
-const FRAME_INTERVAL_MS = 1000 / TARGET_FPS; // ≈ 50ms
-const PREDICT_EVERY_N = 1; // Dengan 20fps, prediksi setiap frame
+const CANVAS_W = 320;
+const CANVAS_H = 240;
+const TARGET_FPS = 24;
+const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
+const PREDICT_EVERY_N = 1;
 const MIN_CONF_SHOW = 30;
 
 function GlobalLivePracticeContent() {
@@ -37,24 +38,26 @@ function GlobalLivePracticeContent() {
   const [handDetected, setHandDetected] = useState(false);
 
   const [dynamicResult, setDynamicResult] = useState(null);
-  const [recordingState, setRecordingState] = useState({ isRecording: false, progress: 0, total: 60 });
+  const [recordingState, setRecordingState] = useState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
+  const [recordingError, setRecordingError] = useState(null);
 
   const handleStartRecording = useCallback(() => {
     setDynamicResult(null);
-    setRecordingState({ isRecording: true, progress: 0, total: 60 });
+    setRecordingError(null);
 
     startRecordingDynamic((res) => {
-      setDynamicResult(res);
-      setTimeout(() => setDynamicResult(null), 5000);
+      if (res.error === "timeout") {
+        setRecordingError("Rekaman gagal: tangan tidak terdeteksi cukup lama. Coba lagi.");
+        setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
+        setTimeout(() => setRecordingError(null), 4000);
+      } else {
+        setDynamicResult(res);
+        setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
+        setTimeout(() => setDynamicResult(null), 5000);
+      }
     });
 
-    const interval = setInterval(() => {
-      const state = getRecordingState();
-      setRecordingState(state);
-      if (!state.isRecording) {
-        clearInterval(interval);
-      }
-    }, 100);
+    setRecordingState({ isRecording: true, progress: 0, total: 60, remainingMs: 5000 });
   }, []);
 
   const maybeSetResult = useCallback((next) => {
@@ -103,9 +106,6 @@ function GlobalLivePracticeContent() {
           const next = predictGesture(landmarks);
           maybeSetResult(next);
         } else {
-          // Saat merekam dinamis, tetap panggil predictGesture setiap frame
-          // agar buffer 60 frame terisi dalam waktu ~2 detik, bukan 6 detik.
-          // predictGesture() yang menambahkan frame ke buffer internal saat isRecordingDynamic = true.
           predictGesture(landmarks);
         }
 
@@ -114,11 +114,29 @@ function GlobalLivePracticeContent() {
         frameCountRef.current = 0;
         if (handDetected) setHandDetected(false);
         maybeSetResult(EMPTY_RESULT);
+
+        // If recording and hand is lost, still call addDynamicFrame(null)
+        // so the engine can pad with last known frame
+        const state = getRecordingState();
+        if (state.isRecording) {
+          addDynamicFrame(null);
+        }
+      }
+
+      // Sync recording UI state directly from engine (no polling interval needed)
+      const currentState = getRecordingState();
+      if (currentState.isRecording || recordingState.isRecording) {
+        setRecordingState(currentState);
+
+        // Handle timeout detected by engine
+        if (currentState.timedOut) {
+          setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
+        }
       }
 
       ctx.restore();
     },
-    [handDetected, maybeSetResult]
+    [handDetected, maybeSetResult, recordingState.isRecording]
   );
 
   // Keep the ref in sync with the latest callback version
@@ -185,7 +203,7 @@ function GlobalLivePracticeContent() {
           return;
         }
 
-        // FPS gate: 20fps cap untuk mengurangi beban WASM 3×
+        // FPS gate
         if (now - lastSendTime < FRAME_INTERVAL_MS) {
           if (!isUnmountedRef.current) cameraRef.current = requestAnimationFrame(processFrame);
           return;
@@ -340,9 +358,14 @@ function GlobalLivePracticeContent() {
             </div>
           </div>
 
-          {/* Record Dynamic Gesture Button */}
+          {/* Record Dynamic Gesture Button / Progress / Error */}
           <div className="mt-1 flex justify-center">
-            {recordingState.isRecording ? (
+            {recordingError ? (
+              <div className="w-full flex items-center gap-2 bg-red-50 border border-red-200 rounded-md px-4 py-2.5 text-sm text-red-700 font-semibold animate-in fade-in duration-300">
+                <AlertTriangle size={16} className="shrink-0" />
+                {recordingError}
+              </div>
+            ) : recordingState.isRecording ? (
               <div className="w-full flex flex-col items-center gap-1.5">
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -350,7 +373,10 @@ function GlobalLivePracticeContent() {
                     style={{ width: `${(recordingState.progress / recordingState.total) * 100}%` }}
                   ></div>
                 </div>
-                <span className="text-xs font-bold text-red-500 animate-pulse">Merekam Gerakan... ({recordingState.progress}/{recordingState.total})</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-red-500 animate-pulse">Merekam Gerakan... ({recordingState.progress}/{recordingState.total})</span>
+                  <span className="text-xs text-gray-400">Sisa {(recordingState.remainingMs / 1000).toFixed(1)}s</span>
+                </div>
               </div>
             ) : (
               <button

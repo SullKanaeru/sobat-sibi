@@ -12,14 +12,13 @@ import {
   addDynamicFrame,
   getRecordingState,
 } from "@/lib/gestureRecognizer";
-import { ArrowLeft, Timer, Camera, CheckCircle2, Video, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Timer, Camera, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const CANVAS_W = 320;
 const CANVAS_H = 240;
 const TARGET_FPS = 24;
 const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
 const PREDICT_EVERY_N = 1;
-const MIN_CONF_SHOW = 30;
 
 // Letters that require dynamic (motion-based) gesture detection
 const DYNAMIC_LETTERS = ["J", "Z"];
@@ -48,15 +47,19 @@ function LivePracticeContent() {
   const [result, setResult] = useState(EMPTY_RESULT);
   const [handDetected, setHandDetected] = useState(false);
   const handDetectedRef = useRef(false);
-  const [timer, setTimer] = useState(45); // 45 seconds timer
-  const [holdProgress, setHoldProgress] = useState(0);
-  const holdStartTimeRef = useRef(null);
+  const [timer, setTimer] = useState(60); // 60 seconds timer
+  
+  // Latihan 3-Repetitions State Machine
+  const [currentRep, setCurrentRep] = useState(1);
+  const [practiceState, setPracticeState] = useState("idle"); // idle, countdown, recording, evaluating, success, error
+  const practiceStateRef = useRef("idle"); // For sync access in callbacks
+  const [countdownVal, setCountdownVal] = useState(3);
+  const [holdProgress, setHoldProgress] = useState(0); 
+  const repFeedbackRef = useRef({ type: "", text: "" });
 
-  // Dynamic gesture states (for J/Z lessons)
-  const [dynamicResult, setDynamicResult] = useState(null);
+  // Dynamic recording state (just for UI progress sync)
   const [recordingState, setRecordingState] = useState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
   const recordingActiveRef = useRef(false);
-  const [recordingError, setRecordingError] = useState(null);
 
   // Timer countdown
   useEffect(() => {
@@ -72,40 +75,123 @@ function LivePracticeContent() {
     return `${m}:${s}`;
   };
 
-  const handleStartRecording = useCallback(() => {
-    setDynamicResult(null);
-    setRecordingError(null);
+  // ---------------------------------------------------------
+  // PRACTICE STATE MACHINE
+  // ---------------------------------------------------------
+  useEffect(() => {
+    let timeoutId;
+    let intervalId;
+    let animationFrameId;
 
-    startRecordingDynamic((res) => {
-      if (res.error === "timeout") {
-        setRecordingError("Rekaman gagal: tangan tidak terdeteksi cukup lama. Coba lagi.");
-        setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
-        setTimeout(() => setRecordingError(null), 4000);
-      } else {
-        setDynamicResult(res);
-        setRecordingState({ isRecording: false, progress: 0, total: 60, remainingMs: 0 });
-
-        // If the detected letter matches the target, auto-complete the lesson
-        if (res.char === targetLetter && res.confidence >= 60) {
-          setTimeout(() => {
-            if (lessonId) {
-              fetch(`/api/lessons/${lessonId}/complete`, { method: "POST" })
-                .catch(err => console.error("Error saving progress:", err))
-                .finally(() => {
-                  router.push(`/live-practice/summary?lessonId=${lessonId}&accuracy=${Math.round(res.confidence)}&letter=${res.char}`);
-                });
-            } else {
-              router.push(`/live-practice/summary?accuracy=${Math.round(res.confidence)}&letter=${res.char}`);
-            }
-          }, 1500);
-        } else {
-          setTimeout(() => setDynamicResult(null), 5000);
-        }
+    if (practiceState === "idle") {
+      if (handDetected) {
+        practiceStateRef.current = "countdown";
+        setPracticeState("countdown");
+        setCountdownVal(3);
       }
-    });
+    } 
+    else if (practiceState === "countdown") {
+      intervalId = setInterval(() => {
+        setCountdownVal((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalId);
+            practiceStateRef.current = "recording";
+            setPracticeState("recording");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    else if (practiceState === "recording") {
+      if (isDynamicLesson) {
+        // --- DYNAMIC GESTURE RECORDING ---
+        startRecordingDynamic((res) => {
+          if (res.error === "timeout") {
+            repFeedbackRef.current = { type: "error", text: "Tangan hilang. Coba lagi." };
+            practiceStateRef.current = "error";
+            setPracticeState("error");
+          } else {
+            if (res.char === targetLetter && res.confidence >= 60) {
+              repFeedbackRef.current = { type: "success", text: `Benar! Huruf ${targetLetter}` };
+              practiceStateRef.current = "success";
+              setPracticeState("success");
+            } else {
+              repFeedbackRef.current = { type: "error", text: `Salah, terdeteksi: ${res.char}` };
+              practiceStateRef.current = "error";
+              setPracticeState("error");
+            }
+          }
+        });
+      } else {
+        // --- STATIC GESTURE RECORDING (3s Hold) ---
+        const startTime = Date.now();
+        setHoldProgress(0);
 
-    setRecordingState({ isRecording: true, progress: 0, total: 60, remainingMs: 5000 });
-  }, [targetLetter, lessonId, router]);
+        const updateProgress = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min((elapsed / 3000) * 100, 100);
+          setHoldProgress(progress);
+          
+          if (progress >= 100) {
+            practiceStateRef.current = "evaluating";
+            setPracticeState("evaluating");
+            
+            // Wait a tiny bit to ensure we capture the absolute last frame result
+            setTimeout(() => {
+              const finalResult = lastResultRef.current;
+              if (finalResult.smoothedChar === targetLetter && finalResult.confidence >= 60) {
+                 repFeedbackRef.current = { type: "success", text: `Benar! Huruf ${targetLetter}` };
+                 practiceStateRef.current = "success";
+                 setPracticeState("success");
+              } else {
+                 const detected = finalResult.smoothedChar !== "..." ? finalResult.smoothedChar : "?";
+                 repFeedbackRef.current = { type: "error", text: `Salah, terdeteksi: ${detected}` };
+                 practiceStateRef.current = "error";
+                 setPracticeState("error");
+              }
+            }, 50);
+
+          } else {
+            animationFrameId = requestAnimationFrame(updateProgress);
+          }
+        };
+        animationFrameId = requestAnimationFrame(updateProgress);
+      }
+    }
+    else if (practiceState === "success") {
+      timeoutId = setTimeout(() => {
+        if (currentRep < 3) {
+          setCurrentRep(prev => prev + 1);
+          practiceStateRef.current = "idle";
+          setPracticeState("idle");
+        } else {
+          // Finished all 3 reps
+          if (lessonId) {
+            fetch(`/api/lessons/${lessonId}/complete`, { method: "POST" })
+              .catch(err => console.error("Error saving progress:", err))
+              .finally(() => {
+                router.push(`/live-practice/summary?lessonId=${lessonId}&accuracy=100&letter=${targetLetter}`);
+              });
+          } else {
+            router.push(`/live-practice/summary?accuracy=100&letter=${targetLetter}`);
+          }
+        }
+      }, 2000);
+    }
+    else if (practiceState === "error") {
+      timeoutId = setTimeout(() => {
+        practiceStateRef.current = "idle";
+        setPracticeState("idle");
+      }, 2500);
+    }
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, [practiceState, handDetected, isDynamicLesson, targetLetter, currentRep, lessonId, router]);
 
   const maybeSetResult = useCallback((next) => {
     const prev = lastResultRef.current;
@@ -148,32 +234,6 @@ function LivePracticeContent() {
         if (frameCountRef.current % PREDICT_EVERY_N === 0) {
           const next = predictGesture(landmarks);
           maybeSetResult(next);
-
-          // Logic Tahan Posisi 2 Detik (Static Gestures only, not for J/Z)
-          if (!isDynamicLesson && next.confidence >= 90) {
-            if (!holdStartTimeRef.current) {
-              holdStartTimeRef.current = Date.now();
-            } else {
-              const elapsed = Date.now() - holdStartTimeRef.current;
-              const progress = Math.min((elapsed / 2000) * 100, 100);
-              setHoldProgress(progress);
-              
-              if (progress >= 100) {
-                if (lessonId) {
-                  fetch(`/api/lessons/${lessonId}/complete`, { method: "POST" })
-                    .catch(err => console.error("Error saving progress:", err))
-                    .finally(() => {
-                      router.push(`/live-practice/summary?lessonId=${lessonId}&accuracy=${Math.round(next.confidence)}&letter=${next.smoothedChar}`);
-                    });
-                } else {
-                  router.push(`/live-practice/summary?accuracy=${Math.round(next.confidence)}&letter=${next.smoothedChar}`);
-                }
-              }
-            }
-          } else if (!isDynamicLesson) {
-            holdStartTimeRef.current = null;
-            setHoldProgress(0);
-          }
         }
 
         if (!handDetectedRef.current) {
@@ -182,12 +242,17 @@ function LivePracticeContent() {
         }
       } else {
         frameCountRef.current = 0;
-        holdStartTimeRef.current = null;
-        setHoldProgress(0);
+        
         if (handDetectedRef.current) {
           handDetectedRef.current = false;
           setHandDetected(false);
+          // Cancel countdown if hand is lost
+          if (practiceStateRef.current === "countdown") {
+            practiceStateRef.current = "idle";
+            setPracticeState("idle");
+          }
         }
+        
         maybeSetResult(EMPTY_RESULT);
 
         // If recording dynamic and hand is lost, pad with last known frame
@@ -197,7 +262,7 @@ function LivePracticeContent() {
         }
       }
 
-      // Sync recording UI state
+      // Sync dynamic recording UI state
       if (isDynamicLesson) {
         const currentState = getRecordingState();
         if (currentState.isRecording || recordingActiveRef.current) {
@@ -208,7 +273,7 @@ function LivePracticeContent() {
 
       ctx.restore();
     },
-    [maybeSetResult, lessonId, router, isDynamicLesson]
+    [maybeSetResult, isDynamicLesson]
   );
 
   // Keep the ref in sync with the latest callback
@@ -256,11 +321,10 @@ function LivePracticeContent() {
       
       hands.setOptions({
         maxNumHands: 1,
-        modelComplexity: 0, // Lite model: ~50% lebih cepat, akurasi landmark hampir sama
+        modelComplexity: 0, 
         minDetectionConfidence: 0.6,
         minTrackingConfidence: 0.5,
       });
-      // Register a stable wrapper that always delegates to the latest callback ref.
       hands.onResults((results) => {
         if (onHandResultsRef.current) onHandResultsRef.current(results);
       });
@@ -274,7 +338,6 @@ function LivePracticeContent() {
           return;
         }
 
-        // FPS gate
         if (now - lastSendTime < FRAME_INTERVAL_MS) {
           cameraRef.current = requestAnimationFrame(processFrame);
           return;
@@ -349,7 +412,6 @@ function LivePracticeContent() {
         cameraRef.current = null;
       }
 
-      // Delay closing to let pending WASM sends finish
       setTimeout(() => {
         if (handsRef.current) {
           try {
@@ -365,17 +427,9 @@ function LivePracticeContent() {
     };
   }, [setupMediaPipe]);
 
-  const conf = dynamicResult ? Math.round(dynamicResult.confidence) : Math.round(result.confidence);
-  const displayChar = dynamicResult
-    ? dynamicResult.char
-    : (conf >= MIN_CONF_SHOW && result.smoothedChar !== "..." ? result.smoothedChar : "");
-  const isPerfect = isDynamicLesson
-    ? (dynamicResult && dynamicResult.char === targetLetter && dynamicResult.confidence >= 60)
-    : conf >= 90;
-
   return (
     <div className="fixed inset-0 z-[100] flex flex-col h-screen overflow-hidden text-gray-900 bg-[#f9f9ff]">
-      {/* Background radial gradient equivalent to the mesh-bg */}
+      {/* Background */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-50"
         style={{
@@ -412,7 +466,7 @@ function LivePracticeContent() {
           <div className="w-8 h-8 rounded-full border-2 border-blue-200 flex items-center justify-center relative">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <path className="text-gray-200 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="3"></path>
-              <path className="text-blue-700 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray={`${(timer/45)*100}, 100`} strokeWidth="3"></path>
+              <path className="text-blue-700 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray={`${(timer/60)*100}, 100`} strokeWidth="3"></path>
             </svg>
           </div>
         </div>
@@ -434,8 +488,8 @@ function LivePracticeContent() {
               <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-1 relative z-20">{lessonTitle}</h2>
               <p className="text-sm text-gray-500 relative z-20 text-center max-w-xs font-medium">
                 {isDynamicLesson
-                  ? `Tekan tombol "Rekam", lalu peragakan gerakan huruf ${targetLetter} menggunakan tangan Anda.`
-                  : "Tirukan isyarat di atas menggunakan tangan Anda."
+                  ? `Peragakan gerakan huruf ${targetLetter} setelah hitung mundur.`
+                  : `Tahan isyarat huruf ${targetLetter} selama 3 detik setelah hitung mundur.`
                 }
               </p>
             </div>
@@ -480,86 +534,87 @@ function LivePracticeContent() {
               {modelStatus === "ready" && !handDetected && (
                  <div className="absolute top-0 left-0 w-full h-1 bg-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.8)] z-30 animate-[scan_3s_ease-in-out_infinite]"></div>
               )}
+
+              {/* OVERLAYS based on State */}
+              {practiceState === "countdown" && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all">
+                  <span className="text-9xl font-black text-white drop-shadow-2xl animate-in zoom-in duration-200">
+                    {countdownVal}
+                  </span>
+                </div>
+              )}
+
+              {(practiceState === "success" || practiceState === "error") && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all">
+                  <div className={`px-8 py-6 rounded-2xl flex flex-col items-center gap-3 transform transition-all animate-in zoom-in-90 duration-300 shadow-2xl ${practiceState === "success" ? "bg-green-500" : "bg-red-500"}`}>
+                     {practiceState === "success" ? <CheckCircle2 size={56} className="text-white" /> : <AlertTriangle size={56} className="text-white" />}
+                     <span className="text-2xl font-black text-white tracking-wide text-center">{repFeedbackRef.current.text}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Status Overlay (Bottom) */}
             <div className="absolute bottom-4 left-4 right-4 z-30">
-              {isDynamicLesson ? (
-                // Dynamic lesson: show recording controls
-                <div className="bg-white border border-gray-200 shadow-sm rounded-md p-4 flex flex-col gap-2 border-l-4 border-l-blue-700">
-                  {recordingError ? (
-                    <div className="flex items-center gap-2 text-sm text-red-700 font-semibold">
-                      <AlertTriangle size={16} className="shrink-0" />
-                      {recordingError}
+              <div className="bg-white border border-gray-200 shadow-sm rounded-md p-4 flex flex-col gap-3 border-l-4 border-l-blue-700">
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Latihan {currentRep} dari 3</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3].map(rep => (
+                       <div key={rep} className={`w-2.5 h-2.5 rounded-full transition-colors ${rep < currentRep ? "bg-green-500" : rep === currentRep ? "bg-blue-600 animate-pulse" : "bg-gray-200"}`} />
+                    ))}
+                  </div>
+                </div>
+
+                {practiceState === "idle" && (
+                  <div className="text-center py-1">
+                    <p className="font-bold text-gray-900 text-sm">Arahkan tangan ke kamera untuk memulai</p>
+                  </div>
+                )}
+
+                {practiceState === "countdown" && (
+                  <div className="text-center py-1">
+                    <p className="font-bold text-blue-700 text-sm animate-pulse">Bersiap...</p>
+                  </div>
+                )}
+
+                {practiceState === "recording" && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-red-500 uppercase tracking-wider animate-pulse">
+                        {isDynamicLesson ? "Merekam Gerakan..." : "Tahan Posisi..."}
+                      </span>
                     </div>
-                  ) : recordingState.isRecording ? (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-red-500 uppercase tracking-wider animate-pulse">Merekam Gerakan...</span>
-                        <span className="text-xs text-gray-400">Sisa {(recordingState.remainingMs / 1000).toFixed(1)}s</span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-red-500 rounded-full transition-all duration-100"
-                          style={{ width: `${(recordingState.progress / recordingState.total) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-500">Frame: {recordingState.progress}/{recordingState.total}</span>
-                    </>
-                  ) : dynamicResult ? (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hasil Deteksi</span>
-                        <span className="text-2xl font-black text-blue-700">{dynamicResult.char}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 size={20} className={dynamicResult.char === targetLetter && dynamicResult.confidence >= 60 ? "text-green-500" : "text-amber-500"} />
-                        <span className="font-bold text-gray-900">
-                          {dynamicResult.char === targetLetter && dynamicResult.confidence >= 60
-                            ? `Benar! Huruf ${targetLetter} berhasil dikenali!`
-                            : `Terdeteksi: ${dynamicResult.char} (${Math.round(dynamicResult.confidence)}%). Coba lagi!`
-                          }
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <button
-                      onClick={handleStartRecording}
-                      className="w-full px-5 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-md font-bold shadow-sm flex items-center justify-center gap-2 transition-all text-sm"
-                    >
-                      <Video size={16} />
-                      Rekam Isyarat Huruf {targetLetter}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                // Static lesson: show accuracy & hold progress
-                <div className="bg-white border border-gray-200 shadow-sm rounded-md p-4 flex flex-col gap-2 border-l-4 border-l-blue-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Akurasi AI</span>
-                    <span className="text-2xl font-black text-blue-700">{conf}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={20} className={conf >= 90 ? "text-green-500" : "text-gray-400"} />
-                    <span className="font-bold text-gray-900">
-                      {conf >= 90 ? "Sangat Baik! Tahan posisi!" : "Coba perbaiki posisi jari Anda"}
-                    </span>
-                  </div>
-                  {/* Progress Bar */}
-                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1 relative">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-100 ${conf >= 90 ? 'bg-green-500' : 'bg-blue-700'}`} 
-                      style={{ width: `${conf >= 90 ? holdProgress : conf}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-red-500 rounded-full transition-all duration-100 ease-linear"
+                        style={{ width: `${isDynamicLesson ? (recordingState.progress / recordingState.total) * 100 : holdProgress}%` }}
+                      ></div>
+                    </div>
+                  </>
+                )}
+                
+                {practiceState === "evaluating" && (
+                   <div className="text-center py-1">
+                      <p className="font-bold text-gray-900 text-sm animate-pulse">Mengevaluasi...</p>
+                   </div>
+                )}
+
+                {(practiceState === "success" || practiceState === "error") && (
+                   <div className="text-center py-1">
+                      <p className={`font-bold text-sm ${practiceState === "success" ? "text-green-600" : "text-red-600"}`}>
+                        {practiceState === "success" ? "Kerja Bagus!" : "Coba lagi..."}
+                      </p>
+                   </div>
+                )}
+
+              </div>
             </div>
           </div>
 
         </div>
       </main>
-
 
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes scan {

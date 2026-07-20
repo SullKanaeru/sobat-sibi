@@ -171,10 +171,12 @@ function LivePracticeContent() {
             fetch(`/api/lessons/${lessonId}/complete`, { method: "POST" })
               .catch(err => console.error("Error saving progress:", err))
               .finally(() => {
-                router.push(`/live-practice/summary?lessonId=${lessonId}&accuracy=100&letter=${targetLetter}`);
+                practiceStateRef.current = "completed";
+                setPracticeState("completed");
               });
           } else {
-            router.push(`/live-practice/summary?accuracy=100&letter=${targetLetter}`);
+            practiceStateRef.current = "completed";
+            setPracticeState("completed");
           }
         }
       }, 2000);
@@ -491,8 +493,9 @@ function LivePracticeContent() {
                   alt={`Isyarat ${targetLetter}`} 
                   className="w-full h-full object-contain drop-shadow-xl"
                   onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
+                    e.target.classList.add('hidden');
+                    e.target.nextSibling.classList.remove('hidden');
+                    e.target.nextSibling.classList.add('flex');
                   }}
                 />
                 {/* Fallback if image not found */}
@@ -564,6 +567,26 @@ function LivePracticeContent() {
                   <div className={`px-8 py-6 rounded-2xl flex flex-col items-center gap-3 transform transition-all animate-in zoom-in-90 duration-300 shadow-2xl ${practiceState === "success" ? "bg-green-500" : "bg-red-500"}`}>
                      {practiceState === "success" ? <CheckCircle2 size={56} className="text-white" /> : <AlertTriangle size={56} className="text-white" />}
                      <span className="text-2xl font-black text-white tracking-wide text-center">{repFeedbackRef.current.text}</span>
+                  </div>
+                </div>
+              )}
+
+              {practiceState === "completed" && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all">
+                  <div className="bg-white px-8 py-8 rounded-2xl flex flex-col items-center gap-4 transform transition-all animate-in zoom-in-90 duration-300 shadow-2xl max-w-sm w-11/12 text-center">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                       <CheckCircle2 size={40} className="text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-gray-900 mb-2">Latihan Selesai!</h3>
+                      <p className="text-gray-500 font-medium leading-relaxed">Anda telah berhasil menyelesaikan seluruh 3 repetisi latihan dengan sangat baik.</p>
+                    </div>
+                    <button 
+                      onClick={() => router.back()}
+                      className="mt-2 w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-xl font-bold transition-all"
+                    >
+                      Kembali ke Materi
+                    </button>
                   </div>
                 </div>
               )}

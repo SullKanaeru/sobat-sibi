@@ -264,23 +264,7 @@ function GlobalLivePracticeContent() {
         await loadModel();
         if (!isMounted) return;
         setModelStatus("ready");
-
-        if (!window.isMediaPipeInitializing) {
-          window.isMediaPipeInitializing = true;
-          try {
-            if (isMounted) await setupMediaPipe();
-          } finally {
-            window.isMediaPipeInitializing = false;
-          }
-        } else {
-          setTimeout(() => {
-            if (isMounted) {
-              setupMediaPipe().catch(err => {
-                if (isMounted) setModelStatus("error");
-              });
-            }
-          }, 1000);
-        }
+        if (isMounted) await setupMediaPipe();
       } catch (err) {
         if (isMounted) setModelStatus("error");
       }
@@ -295,15 +279,11 @@ function GlobalLivePracticeContent() {
         cameraRef.current = null;
       }
 
-      // Delay closing to let pending WASM sends finish
-      setTimeout(() => {
-        if (handsRef.current) {
-          try {
-            handsRef.current.close();
-          } catch (e) { }
-          handsRef.current = null;
-        }
-      }, 500);
+      // Close hands synchronously on unmount
+      if (handsRef.current) {
+        try { handsRef.current.close(); } catch (e) { }
+        handsRef.current = null;
+      }
 
       resetHistory();
       frameCountRef.current = 0;

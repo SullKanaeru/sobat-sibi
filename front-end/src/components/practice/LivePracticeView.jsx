@@ -334,7 +334,10 @@ function LivePracticeContent() {
       let isSending = false;
       let lastSendTime = 0;
       const processFrame = async (now) => {
-        if (isUnmountedRef.current || !webcamRef.current || !webcamRef.current.video) {
+        if (isUnmountedRef.current) return;
+
+        if (!webcamRef.current || !webcamRef.current.video) {
+          cameraRef.current = requestAnimationFrame(processFrame);
           return;
         }
 
@@ -478,18 +481,30 @@ function LivePracticeContent() {
           
           <div className="bg-white border border-gray-200 shadow-sm rounded-lg flex flex-col items-center justify-center relative overflow-hidden group p-6">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-white/50 z-0"></div>
-            <div className="z-10 flex flex-col items-center">
-              <span className="text-[120px] text-blue-700/5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-black select-none pointer-events-none">
-                {targetLetter}
-              </span>
-              <div className="w-44 h-44 bg-gray-50 rounded-lg shadow-sm flex items-center justify-center relative z-20 mb-4 border border-gray-200">
-                <span className="text-6xl font-black text-blue-700">{targetLetter}</span>
+            <div className="z-10 flex flex-col items-center w-full mt-4">
+              <div className="w-56 h-56 md:w-72 md:h-72 flex items-center justify-center relative z-20 mb-6">
+                <img 
+                  src={lessonTitle.toLowerCase().includes("angka") 
+                    ? `/images/dict/angka/sibi_${targetLetter.toLowerCase()}.png` 
+                    : `/images/dict/huruf/sibi_${targetLetter.toLowerCase()}.png`
+                  } 
+                  alt={`Isyarat ${targetLetter}`} 
+                  className="w-full h-full object-contain drop-shadow-xl"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                {/* Fallback if image not found */}
+                <div className="hidden w-44 h-44 bg-gray-50 rounded-2xl shadow-sm flex-col items-center justify-center border border-gray-200">
+                  <span className="text-5xl font-black text-blue-700">{targetLetter.length > 3 ? targetLetter.substring(0,3) : targetLetter}</span>
+                </div>
               </div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-1 relative z-20">{lessonTitle}</h2>
-              <p className="text-sm text-gray-500 relative z-20 text-center max-w-xs font-medium">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2 relative z-20 tracking-tight">{lessonTitle}</h2>
+              <p className="text-sm text-gray-500 relative z-20 text-center max-w-sm font-medium leading-relaxed">
                 {isDynamicLesson
-                  ? `Peragakan gerakan huruf ${targetLetter} setelah hitung mundur.`
-                  : `Tahan isyarat huruf ${targetLetter} selama 3 detik setelah hitung mundur.`
+                  ? `Peragakan gerakan isyarat ${lessonTitle} setelah hitung mundur.`
+                  : `Tahan posisi isyarat ${lessonTitle} selama 3 detik setelah hitung mundur.`
                 }
               </p>
             </div>

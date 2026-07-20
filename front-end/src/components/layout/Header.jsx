@@ -70,7 +70,10 @@ export default function Header() {
   return (
     <div className="top-4 z-[40] px-4 md:px-8 mb-6 mt-2">
       <header className="h-16 w-full bg-white/80 backdrop-blur-md border border-gray-200 shadow-sm rounded-md flex items-center justify-between px-6 transition-all duration-300">
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center overflow-hidden shadow-sm bg-white">
+            <img src="/images/logo.png" alt="Sobat SIBI Logo" className="w-full h-full object-contain p-1" />
+          </div>
           <Link href="/" className="text-2xl font-black text-gray-900 tracking-tight hover:text-blue-700 transition-colors">
             Sobat SIBI
           </Link>

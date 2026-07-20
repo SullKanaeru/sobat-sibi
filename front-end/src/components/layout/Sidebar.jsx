@@ -75,8 +75,8 @@ export default function Sidebar() {
 
         {/* Brand / Logo */}
         <div className={`flex items-center gap-3 mb-8 transition-all duration-300 overflow-hidden ${isOpen ? 'px-2' : 'px-0 justify-center'}`}>
-          <div className="w-10 h-10 shrink-0 bg-blue-50 border border-blue-100 text-blue-700 rounded-md flex items-center justify-center font-black text-xl shadow-sm">
-            <span className="transform -rotate-12">S</span>
+          <div className="w-10 h-10 shrink-0 rounded-md flex items-center justify-center overflow-hidden shadow-sm bg-white">
+            <img src="/images/logo.png" alt="Sobat SIBI Logo" className="w-full h-full object-contain p-1" />
           </div>
           <div className={`transition-all duration-300 whitespace-nowrap overflow-hidden ${isOpen ? 'w-32 opacity-100' : 'w-0 opacity-0'}`}>
             <h1 className="text-lg font-bold text-gray-900 leading-tight">Sobat SIBI</h1>

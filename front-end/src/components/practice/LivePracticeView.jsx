@@ -284,7 +284,10 @@ function LivePracticeContent() {
   }, [onHandResults]);
 
   const setupMediaPipe = useCallback(async () => {
-    if (!webcamRef.current || !canvasRef.current) return;
+    while (!webcamRef.current || !canvasRef.current) {
+      if (isUnmountedRef.current) return;
+      await new Promise(r => setTimeout(r, 50));
+    }
 
     const loadScript = (src, globalVarName) =>
       new Promise((resolve, reject) => {
@@ -349,7 +352,7 @@ function LivePracticeContent() {
         }
 
         const video = webcamRef.current.video;
-        if (!video.paused && !video.ended && video.readyState >= 2 && !isSending && handsRef.current) {
+        if (!video.paused && !video.ended && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && !isSending && handsRef.current) {
           lastSendTime = now;
           isSending = true;
           try {

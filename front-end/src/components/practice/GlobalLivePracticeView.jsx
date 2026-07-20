@@ -209,7 +209,10 @@ function GlobalLivePracticeContent() {
       let isSending = false;
       let lastSendTime = 0;
       const processFrame = async (now) => {
-        if (isUnmountedRef.current || !webcamRef.current || !webcamRef.current.video) {
+        if (isUnmountedRef.current) return;
+        
+        if (!webcamRef.current || !webcamRef.current.video) {
+          cameraRef.current = requestAnimationFrame(processFrame);
           return;
         }
 

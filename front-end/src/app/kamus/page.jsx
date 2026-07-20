@@ -15,48 +15,25 @@ const ALPHABET = Array.from({ length: 26 }, (_, i) =>
 );
 const NUMBERS = Array.from({ length: 10 }, (_, i) => i.toString()); // ["0", "1", ..., "9"]
 
-const GlobalLivePracticeView = dynamic(() => import("@/components/practice/GlobalLivePracticeView"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-blue-700 gap-4">
-      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-700 rounded-full animate-spin" />
-      <p className="font-bold">Memuat Kamera Pintar...</p>
-    </div>
-  ),
-});
+import { useRouter } from "next/navigation";
 
 export default function KamusPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("Alphabet");
 
   // Pisahkan state untuk huruf dan angka agar ingat pilihan terakhir user
   const [selectedLetter, setSelectedLetter] = useState("A");
   const [selectedNumber, setSelectedNumber] = useState("1");
 
-  const [isPracticing, setIsPracticing] = useState(false);
-
   const TABS = ["Alphabet", "Numbers", "Phrases"];
 
-  const handlePractice = useCallback(() => setIsPracticing(true), []);
-  const handleBackToKamus = useCallback(() => setIsPracticing(false), []);
+  const handlePractice = useCallback(() => {
+    router.push("/live-practice");
+  }, [router]);
 
   return (
     <div className="w-full h-full min-h-[calc(100vh-120px)] animate-in fade-in duration-500">
-      {isPracticing ? (
-        <div className="space-y-6">
-          <button
-            onClick={handleBackToKamus}
-            className="flex items-center gap-2 text-gray-500 hover:text-blue-700 transition-colors font-semibold bg-white px-4 py-2 rounded-md w-fit shadow-sm border border-gray-200"
-          >
-            <ArrowLeft size={18} />
-            Kembali ke Kamus
-          </button>
-          <div className="w-full">
-            <GlobalLivePracticeView />
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-col md:flex-row justify-between md:items-end mb-6 gap-3">
+      <div className="flex flex-col md:flex-row justify-between md:items-end mb-6 gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
                 Kamus SIBI
@@ -136,8 +113,6 @@ export default function KamusPage() {
               </button>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }
